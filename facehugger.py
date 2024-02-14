@@ -2,7 +2,7 @@ import face_recognition
 from PIL import Image
 
 # Загрузка изображения
-image = face_recognition.load_image_file("C:\\Users\\nitro\\Downloads\\IMAGES\\Alba_Morales_Armchair_Sitting_Brown_haired_Dress_576426_1600x1200.jpg")
+image = face_recognition.load_image_file("C:\\Users\\nitro\Downloads\\IMAGES\\IMG_3849.jpg")
 
 # Нахождение лиц на фотографии
 face_locations = face_recognition.face_locations(image)
