@@ -14,7 +14,7 @@ if file_path:
     # Загрузка изображения
     image = face_recognition.load_image_file(file_path)
     # Загрузка изображения
-    #image = face_recognition.load_image_file("C:\\Users\\nitro\Downloads\\IMAGES\\IMG_3849.jpg")
+    #image = face_recognition.load_image_file("image.jpg")
 
     # Нахождение лиц на фотографии
     face_locations = face_recognition.face_locations(image)
@@ -23,10 +23,10 @@ if file_path:
     top, right, bottom, left = face_locations[0]
 
     # Доля, на которую нужно обрезать
-    top_fraction = 0.5  # сверху
-    bottom_fraction = 0.9  # снизу
-    left_fraction = 0.7  # слева
-    right_fraction = 0.7  # справа
+    top_fraction = 0.9  # сверху
+    bottom_fraction = 1.6  # снизу
+    left_fraction = 1.0  # слева
+    right_fraction = 1.0  # справа
 
     # Проверка координат обрезки
     top = max(top, 0)
