@@ -1,3 +1,4 @@
+Folders creates automatically:
 - input/ # Folder for input images
 - output/ # Folder for cropped images
 - processed/ # Folder for already processed images
