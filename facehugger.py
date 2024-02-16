@@ -1,65 +1,90 @@
 import face_recognition
 from PIL import Image
-import tkinter as tk
-from tkinter import filedialog
 import os
+import datetime
+import time
+import shutil
 
-# Создание диалогового окна выбора файла
-root = tk.Tk()
-root.withdraw()
-file_path = filedialog.askopenfilename()
+# Пути к папкам
+base_dir = os.path.dirname(os.path.abspath(__file__))
+input_directory = os.path.join(base_dir, "input")
+output_directory = os.path.join(base_dir, "output")
+processed_directory = os.path.join(base_dir, "processed")
+errors_directory = os.path.join(base_dir, "errors")
+log_file_path = os.path.join(base_dir, "log.txt")
 
-# Проверка, выбрал ли пользователь файл
-if file_path:
-    # Загрузка изображения
-    image = face_recognition.load_image_file(file_path)
-    # Загрузка изображения
-    #image = face_recognition.load_image_file("image.jpg")
+# Убедитесь, что все необходимые папки существуют
+for directory in [input_directory, output_directory, processed_directory, errors_directory]:
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
-    # Нахождение лиц на фотографии
-    face_locations = face_recognition.face_locations(image)
+# Функция для записи в лог
+def log_message(message):
+    current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    full_message = f"{current_time}, {message}\n"
+    print(message)
+    with open(log_file_path, "a", encoding="utf-8") as log_file:
+        log_file.write(full_message)
 
-    # Предполагаем, что на фотографии одно лицо и обрезаем его
-    top, right, bottom, left = face_locations[0]
+# Функция для обработки изображений
+def process_images():
+    if os.path.exists(input_directory):
+        files = os.listdir(input_directory)
+        if len(files) > 0:
+            for filename in files:
+                file_path = os.path.join(input_directory, filename)
+                if filename.lower().endswith(('.jpg', '.jpeg', '.png')):
+                    try:
+                        image = face_recognition.load_image_file(file_path)
+                        face_locations = face_recognition.face_locations(image)
+                        if len(face_locations) == 1:
+                            top, right, bottom, left = face_locations[0]
 
-    # Доля, на которую нужно обрезать
-    top_fraction = 0.9  # сверху
-    bottom_fraction = 1.6  # снизу
-    left_fraction = 1.0  # слева
-    right_fraction = 1.0  # справа
+                            # Использование параметров обрезки из вашего примера
+                            top_fraction = 0.9
+                            bottom_fraction = 1.6
+                            left_fraction = 1.0
+                            right_fraction = 1.0
 
-    # Проверка координат обрезки
-    top = max(top, 0)
-    bottom = min(bottom, image.shape[0])
-    left = max(left, 0)
-    right = min(right, image.shape[1])
+                            top_offset = int((bottom - top) * top_fraction)
+                            bottom_offset = int((bottom - top) * bottom_fraction)
+                            left_offset = int((right - left) * left_fraction)
+                            right_offset = int((right - left) * right_fraction)
 
-    # Расчет координат обрезки
-    top_offset = int((bottom - top) * top_fraction)
-    bottom_offset = int((bottom - top) * bottom_fraction)
-    left_offset = int((right - left) * left_fraction)
-    right_offset = int((right - left) * right_fraction)
+                            top = max(top - top_offset, 0)
+                            bottom = min(bottom + bottom_offset, image.shape[0])
+                            left = max(left - left_offset, 0)
+                            right = min(right + right_offset, image.shape[1])
 
-    # Применение обрезки с учетом проверок
-    top -= min(top_offset, top)
-    bottom += min(bottom_offset, image.shape[0] - bottom)
-    left -= min(left_offset, left)
-    right += min(right_offset, image.shape[1] - right)
+                            face_image = image[top:bottom, left:right]
+                            cropped_file_path = os.path.join(output_directory, filename)
+                            pil_image = Image.fromarray(face_image)
+                            pil_image.save(cropped_file_path)
+                            log_message(f"Изображение {filename} успешно обрезано и сохранено в 'output'.")
+                            shutil.move(file_path, os.path.join(processed_directory, filename))
+                            log_message(f"Исходное изображение {filename} перемещено в 'processed'.")
+                        else:
+                            raise ValueError("На изображении обнаружено несколько лиц или их отсутствие.")
+                    except Exception as e:
+                        shutil.move(file_path, os.path.join(errors_directory, filename))
+                        log_message(f"Изображение {filename} перемещено в 'errors'. Причина: {e}")
+                else:
+                    shutil.move(file_path, os.path.join(errors_directory, filename))
+                    log_message(f"Файл {filename} не является изображением формата .jpg или .png и перемещен в 'errors'.")
+        else:
+            log_message("Файлы не обнаружены в папке 'input'.")
+    else:
+        log_message("Папка 'input' не существует.")
 
-    # Обрезанное изображение
-    face_image = image[top:bottom, left:right]
-
-    # Формирование пути для сохранения обрезанного изображения
-    directory = os.path.dirname(file_path)
-    filename = os.path.basename(file_path)
-    cropped_directory = os.path.join(directory, "cropped")
-    os.makedirs(cropped_directory, exist_ok=True)
-    cropped_file_path = os.path.join(cropped_directory, filename)
-
-    # Сохранение обрезанного изображения
-    pil_image = Image.fromarray(face_image)
-    pil_image.save(cropped_file_path)
-
-    print("Изображение успешно обрезано и сохранено.")
-else:
-    print("Файл не выбран.")
+# Простой текстовый интерфейс
+if __name__ == "__main__":
+    processing_flag = True
+    try:
+        while processing_flag:
+            print("Обработка изображений запущена. Для остановки нажмите Ctrl+C")
+            process_images()
+            time.sleep(60)  # Ожидание 1 минуту перед следующим запуском
+            print("Для остановки нажмите Ctrl+C")
+    except KeyboardInterrupt:
+        log_message("Обработка изображений остановлена пользователем.")
+        processing_flag = False
