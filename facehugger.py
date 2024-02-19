@@ -33,43 +33,50 @@ def process_images():
         if len(files) > 0:
             for filename in files:
                 file_path = os.path.join(input_directory, filename)
+                original_file_path = file_path  # Сохраняем путь к исходному файлу для возможного перемещения
                 if filename.lower().endswith(('.jpg', '.jpeg', '.png')):
-                    try:
-                        image = face_recognition.load_image_file(file_path)
-                        face_locations = face_recognition.face_locations(image)
-                        if len(face_locations) == 1:
-                            top, right, bottom, left = face_locations[0]
-
-                            # Использование параметров обрезки из вашего примера
-                            top_fraction = 0.9
-                            bottom_fraction = 1.6
-                            left_fraction = 1.0
-                            right_fraction = 1.0
-
-                            top_offset = int((bottom - top) * top_fraction)
-                            bottom_offset = int((bottom - top) * bottom_fraction)
-                            left_offset = int((right - left) * left_fraction)
-                            right_offset = int((right - left) * right_fraction)
-
-                            top = max(top - top_offset, 0)
-                            bottom = min(bottom + bottom_offset, image.shape[0])
-                            left = max(left - left_offset, 0)
-                            right = min(right + right_offset, image.shape[1])
-
-                            face_image = image[top:bottom, left:right]
-                            cropped_file_path = os.path.join(output_directory, filename)
-                            pil_image = Image.fromarray(face_image)
-                            pil_image.save(cropped_file_path)
-                            log_message(f"Изображение {filename} успешно обрезано и сохранено в 'output'.")
-                            shutil.move(file_path, os.path.join(processed_directory, filename))
-                            log_message(f"Исходное изображение {filename} перемещено в 'processed'.")
-                        else:
-                            raise ValueError("На изображении обнаружено несколько лиц или их отсутствие.")
-                    except Exception as e:
-                        shutil.move(file_path, os.path.join(errors_directory, filename))
-                        log_message(f"Изображение {filename} перемещено в 'errors'. Причина: {e}")
+                    attempts = 0
+                    while attempts < 4:
+                        try:
+                            image = face_recognition.load_image_file(file_path)
+                            face_locations = face_recognition.face_locations(image)
+                            if len(face_locations) == 1:
+                                top, right, bottom, left = face_locations[0]
+                                top_fraction = 0.9
+                                bottom_fraction = 1.6
+                                left_fraction = 1.0
+                                right_fraction = 1.0
+                                top_offset = int((bottom - top) * top_fraction)
+                                bottom_offset = int((bottom - top) * bottom_fraction)
+                                left_offset = int((right - left) * left_fraction)
+                                right_offset = int((right - left) * right_fraction)
+                                top = max(top - top_offset, 0)
+                                bottom = min(bottom + bottom_offset, image.shape[0])
+                                left = max(left - left_offset, 0)
+                                right = min(right + right_offset, image.shape[1])
+                                face_image = image[top:bottom, left:right]
+                                cropped_file_path = os.path.join(output_directory, filename)
+                                pil_image = Image.fromarray(face_image)
+                                pil_image.save(cropped_file_path)
+                                log_message(f"Изображение {filename} успешно обрезано и сохранено в 'output'.")
+                                shutil.move(original_file_path, os.path.join(processed_directory, filename))
+                                log_message(f"Исходное изображение {filename} перемещено в 'processed'.")
+                                break
+                            else:
+                                raise ValueError("На изображении обнаружено несколько лиц или их отсутствие.")
+                        except Exception as e:
+                            attempts += 1
+                            if attempts < 4:
+                                pil_image = Image.open(file_path)
+                                pil_image = pil_image.rotate(90, expand=True)
+                                pil_image.save(file_path)  # Поворачиваем и сохраняем изменения в том же файле
+                                log_message(f"Изображение {filename} было повернуто на 90 градусов.")
+                            else:
+                                shutil.move(original_file_path, os.path.join(errors_directory, filename))
+                                log_message(f"Изображение {filename} перемещено в 'errors'. Причина: {e}")
+                                break
                 else:
-                    shutil.move(file_path, os.path.join(errors_directory, filename))
+                    shutil.move(original_file_path, os.path.join(errors_directory, filename))
                     log_message(f"Файл {filename} не является изображением формата .jpg или .png и перемещен в 'errors'.")
         else:
             log_message("Файлы не обнаружены в папке 'input'.")
