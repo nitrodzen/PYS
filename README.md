@@ -6,9 +6,13 @@ Folders will be created automatically:
 
 ====How to use====
 Place the input images in the input folder.
+
 Open folder with .py file with terminal.
+
 Run the facehugger.py by type "facehugger.py" or "python facehugger.py" and press Enter.
+
 The processed images will appear in the output folder, the original processed files will be moved to processed, and the images with errors will be moved to errors.
+
 To stop processing press Ctrl+C in terminal.
 
 
