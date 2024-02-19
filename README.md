@@ -17,9 +17,13 @@ To stop processing press Ctrl+C in terminal.
 
 
 ====Requirements====
+
 Python 3.6+
+
 Libraries: face_recognition, Pillow
+
 Installing dependencies:
+
 - CMake
 - dlib (for your version of python, if you observes an errors, find correct whl dlib file)
 - pip install face_recognition Pillow
