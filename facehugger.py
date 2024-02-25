@@ -1,20 +1,22 @@
 import face_recognition
-from PIL import Image
+from PIL import Image, ImageDraw
 import os
 import datetime
 import time
 import shutil
+import numpy as np
 
 # Пути к папкам
 base_dir = os.path.dirname(os.path.abspath(__file__))
 input_directory = os.path.join(base_dir, "input")
 output_directory = os.path.join(base_dir, "output")
+output_circle_directory = os.path.join(base_dir, "output_circle")
 processed_directory = os.path.join(base_dir, "processed")
 errors_directory = os.path.join(base_dir, "errors")
 log_file_path = os.path.join(base_dir, "log.txt")
 
 # Убедитесь, что все необходимые папки существуют
-for directory in [input_directory, output_directory, processed_directory, errors_directory]:
+for directory in [input_directory, output_directory, output_circle_directory, processed_directory, errors_directory]:
     if not os.path.exists(directory):
         os.makedirs(directory)
 
@@ -26,6 +28,25 @@ def log_message(message):
     with open(log_file_path, "a", encoding="utf-8") as log_file:
         log_file.write(full_message)
 
+# Функция для создания круглой обрезки изображения
+def crop_circle(original_image, face_location):
+    width, height = original_image.size
+    mask = Image.new('L', (width, height), 0)
+    draw = ImageDraw.Draw(mask)
+    
+    # Определение центра и радиуса для круга
+    top, right, bottom, left = face_location
+    center_x, center_y = (left + right) // 2, (top + bottom) // 2
+    radius = max(right - left, bottom - top) // 2
+
+    # Рисуем круг на маске
+    draw.ellipse((center_x - radius, center_y - radius, center_x + radius, center_y + radius), fill=255)
+
+    # Применяем маску к изображению
+    result = Image.new('RGBA', (width, height))
+    result.paste(original_image, (0, 0), mask=mask)
+    return result.crop((center_x - radius, center_y - radius, center_x + radius, center_y + radius))
+
 # Функция для обработки изображений
 def process_images():
     if os.path.exists(input_directory):
@@ -36,16 +57,17 @@ def process_images():
                 original_file_path = file_path  # Сохраняем путь к исходному файлу для возможного перемещения
                 if filename.lower().endswith(('.jpg', '.jpeg', '.png')):
                     attempts = 0
-                    while attempts < 4:
+                    success = False
+                    while attempts < 4 and not success:
                         try:
                             image = face_recognition.load_image_file(file_path)
                             face_locations = face_recognition.face_locations(image)
                             if len(face_locations) == 1:
                                 top, right, bottom, left = face_locations[0]
-                                top_fraction = 0.9
-                                bottom_fraction = 1.6
-                                left_fraction = 1.0
-                                right_fraction = 1.0
+                                top_fraction = 1.0
+                                bottom_fraction = 1.7
+                                left_fraction = 1.3
+                                right_fraction = 1.3
                                 top_offset = int((bottom - top) * top_fraction)
                                 bottom_offset = int((bottom - top) * bottom_fraction)
                                 left_offset = int((right - left) * left_fraction)
@@ -58,13 +80,24 @@ def process_images():
                                 cropped_file_path = os.path.join(output_directory, filename)
                                 pil_image = Image.fromarray(face_image)
                                 pil_image.save(cropped_file_path)
-                                log_message(f"Изображение {filename} успешно обрезано и сохранено в 'output'.")
+                                log_message(f"Изображение {filename} успешно обрезано") # и сохранено в 'output'.
+                                #shutil.move(original_file_path, os.path.join(processed_directory, filename))
+                                #log_message(f"Исходное изображение {filename} перемещено в 'processed'.")
+                                # Создание и сохранение круглого изображения лица
+                                pil_original_image = Image.open(file_path) #загружаем исходное изображение
+                                circle_image = crop_circle(pil_original_image, (top, right, bottom, left))
+                                circle_filename = os.path.splitext(filename)[0]+"_circle.png"
+                                circle_file_path = os.path.join(output_circle_directory, circle_filename)
+                                circle_image.save(circle_file_path, format='PNG')
+                                success = True
+                                log_message(f"Круглое изображение {filename} успешно сохранено в 'output'.")
                                 shutil.move(original_file_path, os.path.join(processed_directory, filename))
                                 log_message(f"Исходное изображение {filename} перемещено в 'processed'.")
                                 break
                             else:
                                 raise ValueError("На изображении обнаружено несколько лиц или их отсутствие.")
                         except Exception as e:
+                            log_message(f"Попытка {attempts + 1}: ошибка при обработке изображения {filename}, причина: {e}")
                             attempts += 1
                             if attempts < 4:
                                 pil_image = Image.open(file_path)
@@ -91,7 +124,6 @@ if __name__ == "__main__":
             print("Обработка изображений запущена. Для остановки нажмите Ctrl+C")
             process_images()
             time.sleep(60)  # Ожидание 1 минуту перед следующим запуском
-            print("Для остановки нажмите Ctrl+C")
     except KeyboardInterrupt:
         log_message("Обработка изображений остановлена пользователем.")
         processing_flag = False
