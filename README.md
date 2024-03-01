@@ -33,39 +33,28 @@ This code is a Python script for processing HTML files and converting them into 
 
 The script performs the following steps:
 
-Specify the necessary directories: 
-    -input_directory for input HTML files.
+1) Specify the necessary directories: 
+- input_directory for input HTML files.
+- output_directory for saving PNG images.
+- and processed_directory for moving processed files.
     
-    -output_directory for saving PNG images.
-    
-    -and processed_directory for moving processed files.
-    
-Check if the specified directories exist, and create them if needed.
+2) Check if the specified directories exist, and create them if needed.
 
-Define the path to the Chrome WebDriver (driver_path). If not specified, the script uses the WebDriver available in the system.
+3) Define the path to the Chrome WebDriver (driver_path). If not specified, the script uses the WebDriver available in the system.
 
-Create the process_html_to_png function, which processes HTML files in the specified directory.
+4) Create the process_html_to_png function, which processes HTML files in the specified directory.
 
-For each file:
+5) For each file:
+- Create an instance of the Chrome WebDriver with the specified options, including the "headless" mode.
+- Open the HTML file in the browser.
+- Set parameters for saving the page as a PDF.
+- Execute the Page.printToPDF command to save the page as a PDF.
+- Decode the PDF content from base64 and save it to a temporary PDF file.
+- Open the temporary PDF file using PyMuPDF, extract the first page, and convert it to a PNG image.
+- Delete the temporary PDF file.
+- Move all files from the input_directory to a subdirectory with the current date and time in the processed_directory.
+- Print the path of the saved PNG image.
+    
+6) Wait for 1 minute before the next check.
 
-    -Create an instance of the Chrome WebDriver with the specified options, including the "headless" mode.
-    
-    -Open the HTML file in the browser.
-    
-    -Set parameters for saving the page as a PDF.
-    
-    -Execute the Page.printToPDF command to save the page as a PDF.
-    
-    -Decode the PDF content from base64 and save it to a temporary PDF file.
-    
-    -Open the temporary PDF file using PyMuPDF, extract the first page, and convert it to a PNG image.
-    
-    -Delete the temporary PDF file.
-    
-    -Move all files from the input_directory to a subdirectory with the current date and time in the processed_directory.
-    
-    -Print the path of the saved PNG image.
-    
-Wait for 1 minute before the next check.
-
-If the user interrupts the script (by pressing Ctrl+C), print a message indicating that the image processing has been stopped.
+7) If the user interrupts the script (by pressing Ctrl+C), print a message indicating that the image processing has been stopped.
