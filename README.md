@@ -1,4 +1,5 @@
 ---------FACEHUGGER---------
+
 Folders will be created automatically:
 - input/ # Folder for input images
 - output/ # Folder for cropped images
@@ -27,6 +28,7 @@ Installing dependencies:
 
 
 ---------HTML2PNG---------
+
 This code is a Python script for processing HTML files and converting them into PNG images using the Selenium, PyMuPDF, and Chrome WebDriver libraries.
 
 The script performs the following steps:
