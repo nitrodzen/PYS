@@ -30,22 +30,42 @@ def log_message(message):
 
 # Функция для создания круглой обрезки изображения
 def crop_circle(original_image, face_location):
+    height_correction_factor=0.15
     width, height = original_image.size
     mask = Image.new('L', (width, height), 0)
     draw = ImageDraw.Draw(mask)
     
-    # Определение центра и радиуса для круга
+    # Определение центра и радиуса для круга с учетом коррекции положения
     top, right, bottom, left = face_location
-    center_x, center_y = (left + right) // 2, (top + bottom) // 2
-    radius = max(right - left, bottom - top) // 2
+    face_height = bottom - top
+    
+    # Коррекция верхней границы на заданный процент высоты лица для центрирования круга
+    corrected_top = top - int(face_height * height_correction_factor)
+    corrected_center_y = (corrected_top + bottom) // 2
 
+    center_x, center_y = (left + right) // 2, corrected_center_y
+    initial_radius = max(right - left, bottom - top) // 2
+    
+    # Проверка, не выходит ли круг за границы изображения, и коррекция радиуса если необходимо
+    max_x_distance = min(center_x, width - center_x)
+    max_y_distance = min(center_y, height - center_y)
+    max_allowed_radius = min(max_x_distance, max_y_distance)
+    radius = min(initial_radius, max_allowed_radius)
+    
     # Рисуем круг на маске
     draw.ellipse((center_x - radius, center_y - radius, center_x + radius, center_y + radius), fill=255)
-
-    # Применяем маску к изображению
+    
+    # Применяем маску к изображению и обрезаем
     result = Image.new('RGBA', (width, height))
     result.paste(original_image, (0, 0), mask=mask)
-    return result.crop((center_x - radius, center_y - radius, center_x + radius, center_y + radius))
+    
+    # Убедимся, что обрезка не выходит за границы изображения
+    crop_left = max(center_x - radius, 0)
+    crop_top = max(center_y - radius, 0)
+    crop_right = min(center_x + radius, width)
+    crop_bottom = min(center_y + radius, height)
+    return result.crop((crop_left, crop_top, crop_right, crop_bottom))
+
 
 # Функция для обработки изображений
 def process_images():
